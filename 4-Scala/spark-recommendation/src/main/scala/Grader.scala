@@ -4,7 +4,7 @@ import scala.util.Random
 
 import java.io.File
 import java.io.PrintWriter
-
+import java.nio.file.{Paths, Files}
 
 class Grader(path: String, sc: SparkContext) {
 
@@ -13,8 +13,10 @@ class Grader(path: String, sc: SparkContext) {
   val films = Random.shuffle(
     sc
       .textFile(path + "/for-grading.tsv")
-      .map{_.split("\t")}
-      .map{x => (x(0).toInt, x(1))}
+      .map {
+        _.split("\t")
+      }
+      .map { x => (x(0).toInt, x(1)) }
       .collect()
       .toSeq
   )
@@ -26,59 +28,74 @@ class Grader(path: String, sc: SparkContext) {
 
   val grading_message = "Enter grade from 1 to 5. Enter 0 if you did not see this movie: "
 
-  var step = 0
-  var limit = 20
+  def check_existance_rating(): Boolean = {
+    Files.exists(Paths.get("user_ratings.tsv"))
+  }
 
-  while (step < limit) {
+  val exists = check_existance_rating()
+  if (exists) {
+    println("the movies already exist we will load them")
+    Files.readAllLines(Paths.get("user_ratings.tsv")).toArray().foreach(line => {
+      val splits = line.toString.split('\t')
+      val movie_id = splits(0).toInt
+      val rating = splits(1).toDouble
+      graded = graded :+ (movie_id, rating)
+    })
+    graded foreach println
+  } else {
+    var step = 0
+    var limit = 20
 
-    println(s"\nGraded ${step}/${limit}, Viewed ${position}/${films.length}")
-    println(s"${grading_message}\n${films(position)._2}")
+    while (step < limit) {
 
-    var grade = scala.io.StdIn.readLine()
+      println(s"\nGraded ${step}/${limit}, Viewed ${position}/${films.length}")
+      println(s"${grading_message}\n${films(position)._2}")
 
-    try {
+      var grade = scala.io.StdIn.readLine()
 
-      var intGrade = grade.toDouble
+      try {
 
-      if (intGrade < 0.0 || intGrade > 5.0) {
-        throw new NumberFormatException()
-      }
+        var intGrade = grade.toDouble
 
-      if (intGrade != 0) {
-        graded = graded :+ (films(position)._1, intGrade)
-        step += 1
-        position += 1
-      } else {
-        position += 1
-      }
-
-      if (position == films.length) {
-        step = limit + 1
-        println("\nNo more movies to grade\n")
-      }
-
-      if (step == limit) {
-
-        println("Grade 20 more? y/[n]")
-        var ans = scala.io.StdIn.readLine()
-
-        if (ans == "y" || ans == "yes" || ans == "Yes" || ans == "YES") {
-          limit += 20
-        } else {
-          println("\nFinished Grading\n")
+        if (intGrade < 0.0 || intGrade > 5.0) {
+          throw new NumberFormatException()
         }
 
+        if (intGrade != 0) {
+          graded = graded :+ (films(position)._1, intGrade)
+          step += 1
+          position += 1
+        } else {
+          position += 1
+        }
+
+        if (position == films.length) {
+          step = limit + 1
+          println("\nNo more movies to grade\n")
+        }
+
+        if (step == limit) {
+
+          println("Grade 20 more? y/[n]")
+          var ans = scala.io.StdIn.readLine()
+
+          if (ans == "y" || ans == "yes" || ans == "Yes" || ans == "YES") {
+            limit += 20
+          } else {
+            println("\nFinished Grading\n")
+          }
+
+        }
+
+      } catch {
+
+        case e: NumberFormatException => println("Try again")
+        case e: Exception => println("Unknown Error")
+
       }
 
-    } catch {
-
-      case e: NumberFormatException => println("Try again")
-      case e: Exception => println("Unknown Error")
-
+      dumpRatings()
     }
-
-    dumpRatings()
-
   }
 
   def printRatings(): Unit = {
@@ -95,6 +112,6 @@ class Grader(path: String, sc: SparkContext) {
   }
 
   def toRDD = {
-    sc.parallelize(this.graded.map{x => Rating(0, x._1, x._2)})
+    sc.parallelize(this.graded.map { x => Rating(0, x._1, x._2) })
   }
 }
