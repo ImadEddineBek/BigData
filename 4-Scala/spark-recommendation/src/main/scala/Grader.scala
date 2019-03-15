@@ -27,6 +27,7 @@ class Grader(path: String, sc: SparkContext) {
   var position = 0
 
   val grading_message = "Enter grade from 1 to 5. Enter 0 if you did not see this movie: "
+  //////////////////// TODO check if it exists
 
   def check_existance_rating(): Boolean = {
     Files.exists(Paths.get("user_ratings.tsv"))
@@ -34,6 +35,7 @@ class Grader(path: String, sc: SparkContext) {
 
   val exists = check_existance_rating()
   if (exists) {
+    //////////////////// TODO Load from file
     println("the movies already exist we will load them")
     Files.readAllLines(Paths.get("user_ratings.tsv")).toArray().foreach(line => {
       val splits = line.toString.split('\t')

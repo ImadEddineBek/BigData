@@ -35,7 +35,7 @@ object MovieLensALS {
     // train a matrix factorization model
     // user should be in training data split. otherwise preference prediction is impossible
     // two parameters are rank (specifies complexity) and iterations
-    //////////////////// Changing parameters
+    //////////////////// TODO  Changing parameters
     val model = ALS.train(train.union(myRating), 2, 10)
 
 
@@ -65,7 +65,7 @@ object MovieLensALS {
       model.predict(sc.parallelize(baseline.keys.map(x => (0, x)).toSeq))
         // sort by ratings in descending order
         .sortBy(_.rating, false)
-        //////////////////// Filtering the user ratings out
+        //////////////////// TODO Filtering the user ratings out
         .filter(x => !(user_movie_ids contains x.product))
         // take first 20 items
         .take(20)
@@ -192,6 +192,8 @@ object MovieLensALS {
 
 
   def parseTitle(filmEntry: String) = {
+    //////////////////// TODO parse title
+
     ",.*,".r findFirstIn filmEntry match {
       // match is an equivalent of case switch
       // https://docs.scala-lang.org/tour/pattern-matching.html
@@ -218,6 +220,7 @@ object MovieLensALS {
   }
 
   def rmse(test: RDD[Rating], prediction: scala.collection.Map[Int, Double]) = {
+    //////////////////// TODO RMSE for baseline
 
     math.sqrt(test.map(x => (x.rating,prediction(x.product)))
         .map(x=>(x._1 - x._2) * (x._1 - x._2))
